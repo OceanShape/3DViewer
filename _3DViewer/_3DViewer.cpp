@@ -21,39 +21,11 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 
 
-EGLDisplay display;
-EGLContext context;
-EGLSurface surface;
-
-
-void InitializeEGL(HWND hwnd) {
-    EGLint numConfigs;
-    EGLConfig config;
-
-    EGLint attributes[] = {
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_NONE
-    };
-
-    display = eglGetDisplay(GetDC(hwnd));
-    eglInitialize(display, NULL, NULL);
-    eglChooseConfig(display, attributes, &config, 1, &numConfigs);
-
-    surface = eglCreateWindowSurface(display, config, hwnd, NULL);
-
-    EGLint contextAttribs[] = {
-        EGL_CONTEXT_CLIENT_VERSION, 3,
-        EGL_NONE
-    };
-
-    context = eglCreateContext(display, config, NULL, contextAttribs);
-    eglMakeCurrent(display, surface, surface, context);
-}
-
 
 
 void DrawTriangle() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     GLfloat vertices[] = {
         0.0f,  0.5f,
        -0.5f, -0.5f,
@@ -71,12 +43,12 @@ void DrawTriangle() {
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
-    eglSwapBuffers(display, surface);
+    //eglSwapBuffers(display, surface);
 
     glDeleteVertexArrays(1, &vertexArray);
     glDeleteBuffers(1, &vertexBuffer);
@@ -124,107 +96,90 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-    if (!hWnd)
+    /*if (!hWnd)
     {
         return FALSE;
     }
 
     ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);
+    UpdateWindow(hWnd);*/
 
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MY3DVIEWER));
+    //HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MY3DVIEWER));
 
-    MSG msg;
 
-    // 기본 메시지 루프입니다:
-    //while (GetMessage(&msg, nullptr, 0, 0))
-    //{
-    //    if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-    //    {
-    //        TranslateMessage(&msg);
-    //        DispatchMessage(&msg);
-    //    }
-    //}
 
-    while (true) {
+
+    //ShowWindow(hWnd, nCmdShow);
+
+    EGLint numConfigs, majorVersion, minorVersion;
+    EGLint attribs[] = {
+    EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+    EGL_RED_SIZE, 8,
+    EGL_GREEN_SIZE, 8,
+    EGL_BLUE_SIZE, 8,
+    EGL_ALPHA_SIZE, 8,
+    EGL_DEPTH_SIZE, 24,
+    EGL_STENCIL_SIZE, 8,
+    EGL_RENDERABLE_TYPE, 0x0040,
+    EGL_NONE
+    };
+    auto eglDisplay = eglGetDisplay(GetDC(hWnd));
+
+    EGLConfig eglConfig;
+    EGLSurface eglSurface;
+    EGLContext eglContext;
+    
+    eglInitialize(eglDisplay, &majorVersion, &minorVersion);
+    eglChooseConfig(eglDisplay, attribs, &eglConfig, 1, &numConfigs);
+
+    eglSurface = eglCreateWindowSurface(eglDisplay, eglConfig, hWnd, NULL);
+
+    eglContext = eglCreateContext(eglDisplay, eglConfig, EGL_NO_CONTEXT, attribs);
+    eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext);
+
+    
+
+    /*ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);*/
+
+    MSG msg = {};
+    while (WM_QUIT != msg.message) {
         if (PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE)) {
-            if (msg.message == WM_QUIT) {
-                break;
-            }
-
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
         else {
             DrawTriangle();
+            eglSwapBuffers(eglDisplay, eglSurface);
         }
     }
 
 
-    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    /*eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(display, context);
     eglDestroySurface(display, surface);
-    eglTerminate(display);
+    eglTerminate(display);*/
 
     UnregisterClass(wcex.lpszClassName, wcex.hInstance);
 
     return (int) msg.wParam;
 }
 
-
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    float wDel;
     switch (message)
     {
-    //case WM_COMMAND:
-    //    {
-    //        int wmId = LOWORD(wParam);
-    //        // 메뉴 선택을 구문 분석합니다:
-    //        switch (wmId)
-    //        {
-    //        case IDM_ABOUT:
-    //            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-    //            break;
-    //        case IDM_EXIT:
-    //            DestroyWindow(hWnd);
-    //            break;
-    //        default:
-    //            return DefWindowProc(hWnd, message, wParam, lParam);
-    //        }
-    //    }
-    //    break;
-    //case WM_PAINT:
-    //    {
-    //        DrawTriangle();
-    //    }
-    //    break;
-    //case WM_DESTROY:
-    //    PostQuitMessage(0);
-    //    break;
+    case WM_KEYDOWN:
+        break;
+    case WM_SIZE:
+        break;
+    case WM_DESTROY:
+        ::PostQuitMessage(0);
+        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
-}
-
-// 정보 대화 상자의 메시지 처리기입니다.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
 }
