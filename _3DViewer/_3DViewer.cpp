@@ -19,44 +19,10 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+void DrawTriangle();
 
-
-
-
-void DrawTriangle() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    GLfloat vertices[] = {
-        0.0f,  0.5f,
-       -0.5f, -0.5f,
-        0.5f, -0.5f
-    };
-
-    GLuint vertexArray, vertexBuffer;
-    glGenVertexArrays(1, &vertexArray);
-    glBindVertexArray(vertexArray);
-
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    //eglSwapBuffers(display, surface);
-
-    glDeleteVertexArrays(1, &vertexArray);
-    glDeleteBuffers(1, &vertexBuffer);
-}
-
-
-
-
+EGLDisplay eglDisplay;
+EGLSurface eglSurface;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -66,11 +32,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: 여기에 코드를 입력합니다.
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_MY3DVIEWER, szWindowClass, MAX_LOADSTRING);
+
     WNDCLASSEXW wcex;
     {
         wcex.cbSize = sizeof(WNDCLASSEX);
@@ -89,28 +55,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     RegisterClassExW(&wcex);
 
+    //CreateWindowW(lpClassName, lpWindowName, dwStyle, x, y,nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam)
+    //HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW, 0, 0, 800, 800, nullptr, nullptr, hInstance, nullptr);
+    HWND hWnd = CreateWindowEx(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+        0, 0, 800, 800, nullptr, nullptr, hInstance, nullptr);
 
-    // 애플리케이션 초기화를 수행합니다:
-    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
+    hInst = hInstance;
 
-    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
-
-    /*if (!hWnd)
-    {
-        return FALSE;
-    }
+    RECT rt;
+    GetClientRect(hWnd, &rt);
 
     ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);*/
-
 
     //HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MY3DVIEWER));
-
-
-
-
-    //ShowWindow(hWnd, nCmdShow);
 
     EGLint numConfigs, majorVersion, minorVersion;
     EGLint attribs[] = {
@@ -124,10 +81,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     EGL_RENDERABLE_TYPE, 0x0040,
     EGL_NONE
     };
-    auto eglDisplay = eglGetDisplay(GetDC(hWnd));
+    eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
     EGLConfig eglConfig;
-    EGLSurface eglSurface;
     EGLContext eglContext;
     
     eglInitialize(eglDisplay, &majorVersion, &minorVersion);
@@ -138,10 +94,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     eglContext = eglCreateContext(eglDisplay, eglConfig, EGL_NO_CONTEXT, attribs);
     eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext);
 
-    
 
-    /*ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);*/
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
 
     MSG msg = {};
     while (WM_QUIT != msg.message) {
@@ -150,8 +109,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
         else {
-            DrawTriangle();
-            eglSwapBuffers(eglDisplay, eglSurface);
+            DrawTriangle(); 
+
+            //eglSwapBuffers(eglDisplay, eglSurface);
         }
     }
 
@@ -165,6 +125,39 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     return (int) msg.wParam;
 }
+
+void DrawTriangle() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLfloat vertices[] = {
+        0.0f,  0.5f,
+    -0.5f, -0.5f,
+        0.5f, -0.5f
+    };
+
+    GLuint vertexArray, vertexBuffer;
+    glGenVertexArrays(1, &vertexArray);
+    glBindVertexArray(vertexArray);
+
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    eglSwapBuffers(eglDisplay, eglSurface);
+    auto t = EGL_NO_SURFACE;
+
+    glDeleteVertexArrays(1, &vertexArray);
+    glDeleteBuffers(1, &vertexBuffer);
+}
+
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
